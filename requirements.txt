@@ -1,0 +1,11 @@
+ipykernel
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+nltk
+regex
+joblib
+imblearn
+streamlit
