@@ -9,3 +9,7 @@ regex
 joblib
 imblearn
 streamlit
+tensorflow
+gensim
+imbalanced-learn
+
