@@ -56,6 +56,36 @@ def clean_text_V2a(text):
   
   return text
 
+# Load V2B Models (GloVe + LSTM)
+@st.cache_resource
+def load_v2b_models():
+    try:
+        model = load_model('models_v2b_glove/lstm_glove_model.h5')
+        with open('models_v2b_glove/tokenizer.pkl', 'rb') as f:
+            tokenizer = pickle.load(f)
+        return model, tokenizer
+    except Exception as e:
+        st.error(f"V2B model not found: {e}")
+        st.info("Run v2b_glove_lstm.ipynb first")
+        return None, None
+
+def clean_text_V2b(text):
+    text = str(text).lower()
+    text = re.sub(r'<.*?>', '', text)
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+def predict_v2b(text, model, tokenizer):
+    clean  = clean_text_V2b(text)
+    seq    = tokenizer.texts_to_sequences([clean])
+    padded = pad_sequences(seq, maxlen=MAX_LEN, padding='post')
+    prob   = model.predict(padded, verbose=0)[0][0]
+    label  = 'POSITIVE ✅' if prob > 0.5 else 'NEGATIVE ❌'
+    conf   = prob if prob > 0.5 else 1 - prob
+    return label, round(float(conf), 3)
+
+
 # Predict V1
 def predict_v1(text, tfidf, model):
     clean   = clean_text_V1(text)
@@ -85,7 +115,8 @@ version = st.selectbox(
     "Choose Model Version:",
     [
         "V1 — TF-IDF + Logistic Regression",
-        "V2A — Word2Vec + LSTM"
+        "V2A — Word2Vec + LSTM",
+        "V2B — GloVe + LSTM (Fine-Tuned)"
     ]
 )
 
@@ -116,6 +147,16 @@ if st.button("Predict Sentiment"):
                 st.markdown(f"### {label}")
                 st.markdown(f"**Confidence:** {conf*100:.1f}%")
                 st.info("Model: Word2Vec + LSTM (V2A)")
+
+        elif version == "V2B — GloVe + LSTM (Fine-Tuned)":
+            model, tokenizer = load_v2b_models()
+            if model is None:
+                st.error("V2B model not loaded")
+            else:
+                label, conf = predict_v2b(review, model, tokenizer)
+                st.markdown(f"### {label}")
+                st.markdown(f"**Confidence:** {conf*100:.1f}%")
+                st.info("Model: GloVe + LSTM — Fine-Tuned (V2B)")
            
 
 # Footer
